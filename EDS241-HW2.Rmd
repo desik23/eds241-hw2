@@ -49,7 +49,7 @@ identifying each county), NBP (indicator =1 if the county was regulated under th
 Program), PctBlack (fraction of the county population that is African American), and
 Dnox_masstons (change in annual NOx emissions from all power plants in a county between
 2000 and 2008 (in tons)). Note that the NBP market was in effect in 212 of the 485 counties in
-the sample from 2003 to 2008, so the 2008-2000 change give us a sense of the program’s
+the sample from 2003 to 2008, so the 2008-2000 change gives us a sense of the program’s
 effect on emissions. If emissions of NOx from power plants declined in a county, then
 Dnox_masstons should be negative.
 
@@ -62,14 +62,11 @@ Dnox_masstons should be negative.
 # Load data
 NBPdata <- read_excel("NBP.xls", sheet = 1, na = "NA")
 
-
 # Clean data
 NBPdata <-janitor::clean_names(NBPdata)
-
-
 ```
 
-\noindent Make a histogram depicting the distribution of Dnox_masstons. 
+\noindent Make a histogram depicting the distribution of dnox_masstons. 
 
 ```{r , include=TRUE}
 nbphist<-ggplot(NBPdata, aes(x= NBPdata$dnox_masstons))+
@@ -85,22 +82,22 @@ nbphist<-ggplot(NBPdata, aes(x= NBPdata$dnox_masstons))+
 nbphist
 ```
 
-\noindent Figure 1 shows an approximately normal distribution for percent low birth weights while Figure 2 shows an approximately bimodal normal distribution for ambient PM2.5 levels.
+\noindent Figure 1 shows a skewed left distribution for the change in annual NOx emissions from all power plants in a county from 2000 to 2008.
 
 \noindent Create an indicator = 1  if the county has PctBlack above the sample median, and = 0
 otherwise (in the rest of the assignment, I refer to this variable as ‘D’). What is the average of
 PctBlack for counties above the median, i.e. counties for which D=1?
 
 ```{r , include=TRUE}
-
+#compute median percent black
 pct_black_median <- median(NBPdata$pct_black)
-
+#create indicator based on median percent black 
 NBPdata<- NBPdata %>% 
   mutate(D = case_when(
     pct_black <= pct_black_median ~ 0,
     pct_black > pct_black_median ~ 1))
 
-
+#find average percent black for counties above the median
 NBPdata_PctBlack_avg <- NBPdata %>% 
           filter(D == 1) %>% 
           group_by(D) %>% 
@@ -118,7 +115,7 @@ coefficient on NBP.
   Y_{i} = \beta_0 + \beta_1 X_{1i} + u_{i}
 \end{align}
 
-\noindent where $Y_{i}$ is LowBirthWeight $i$, $X_{1i}$ is the PM2.5 level, and $u_{i}$ the regression error term. We will consider a regression including only PM2.5, and a regression including PM2.5 and Poverty.
+\noindent where $Y_{i}$ is Dnox_masstons $i$, $X_{1i}$ is the NBP, and $u_{i}$ the regression error term.
 
 
 ```{r , include=TRUE}
@@ -130,16 +127,17 @@ model_1 <- lm_robust(formula =  dnox_masstons ~ nbp, data=NBPdata)
 ```{r , results = 'asis', echo = FALSE}
 huxreg(model_1)
 ```
+\noindent In model (1), the estimated $\beta_{0}$ coefficient implies that if the county was **NOT regulated** under the NOx Budget Program and if  there is a **decline of 3.622 tons** in the change in annual NOx emissions from all power plants in a county between the 2000 and 2008. The estimated $\beta_{1}$ coefficient implies that if the county was **regulated** under the NOx Budget Program there is **an additional decline of 3.92 tons** in the change in annual NOx emissions from all power plants in a county between 2000 and 2008. Both $\beta_{0}$ and $\beta_{1}$ are ***statistically significant at the 5%***.
 
 \noindent Create an interaction between the variables NBP and D. Estimate a regression of
 Dnox_masstons on NBP, D, and this interaction. Interpret each estimated regression coefficient,
 including the intercept.
 
 \begin{align}
-  Y_{i} = \beta_0 + \beta_1 X_{1i} + u_{i}
+  Y_{i} = \beta_0 + \beta_1 X_{1i} + \beta_2 X_{2i} + \beta_3 X_{1i} * X_{2i} + u_{i}
 \end{align}
 
-\noindent where $Y_{i}$ is LowBirthWeight $i$, $X_{1i}$ is the PM2.5 level, and $u_{i}$ the regression error term. We will consider a regression including only PM2.5, and a regression including PM2.5 and Poverty.
+\noindent where $Y_{i}$ is Dnox_masstons $i$, $X_{1i}$ is the NBP, $X_{2i}$ is the D and $u_{i}$ the regression error term.
 
 
 \noindent In R, we run the following code: 
@@ -156,8 +154,14 @@ model_2 <- lm_robust(formula =  dnox_masstons ~ nbp + D + nbp*D, data=NBPdata)
 huxreg(model_2)
 ```
 
-\noindent In model (2), the estimated $\beta_{1}$ coefficient implies that a 1  microgram per cubic meter increase in pm2_5 increases percent of
-census tract births with weight less than 2500g by 0.059. the estimated $\beta_{2}$ coefficient implies that a 1 percent increase in poverty rate within a census tract increases percent of census tract births with weight less than 2500g by 0.027. The effect of PM2.5 on LowBirthWeight is still ***statistically significant at the 5%*** and the effect of Poverty on LowBirthWeight is also ***statistically significant at the 5%***. Adding the Poverty in model (2) reduces $\hat{\beta_{1}}$ from 0.118 to 0.059. This is likely due to omitted variable bias in model (1) which that more heavily weighs the effect of PM2.5 in the absence of other important variables such as Poverty. 
+\noindent In model (2), the estimated $\beta_{0}$ coefficient implies that if the county was **NOT regulated** under the NOx Budget Program  **AND** the county has PctBlack **below** the sample median, there is a **decline of 2.418 tons** in the change in annual NOx emissions from all power plants in a county between the 2000 and 2008. The estimated $\beta_{1}$ coefficient implies that if the county was **regulated** under the NOx Budget
+Program **AND** the county has PctBlack **below** the sample median, there is **an additional decline of 7.141 tons** in the change in annual NOx emissions from all power plants in a county between 2000 and 2008. 
+The estimated $\beta_{2}$ coefficient implies that if the county was **NOT regulated** under the NOx Budget
+Program **AND** the county has PctBlack **above** the sample median, there is **an additional decline of 2.588 tons** in the change in annual NOx emissions from all power plants in a county between 2000 and 2008.
+The estimated $\beta_{3}$ interaction coefficient implies that if the county was **regulated** under the NOx Budget
+Program **AND** the county has PctBlack **above** the sample median, the **decline** in the change in annual NOx emissions from all power plants in a county between 2000 and 2008 **gets negated by 6.372 tons**. In other words, the change in annual NOx emissions increases by 6.372 tons when both NBP and D are equal to 1.
+$\beta_{0}$, $\beta_{1}$, $\beta_{2}$ and $\beta_{3}$ are ***statistically significant at the 5%***.
+
 
 \noindent What is the predicted Dnox_masstons in a county that was not regulated under NBP and
 where PctBlack is above the sample median (i.e., where D=1)? Report the 95% confidence
@@ -168,4 +172,5 @@ PredCounty=data.frame(nbp=c(0), D=c(1))
 predict(model_2, newdata=PredCounty, se.fit=TRUE, interval='confidence')
 ```
 
-\noindent Based on the p-value, we reject the null that the effect of PM2.5 and Poverty are equal. 
+\noindent The predicted Dnox_masstons in a county that was not regulated under NBP and
+where PctBlack is above the sample median (i.e., where D=1) is **-5 tons** with with **lower limit of -6.44 tons** and **upper limit of -3.57 tons** for the **95% confidence level**.
